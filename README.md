@@ -130,21 +130,23 @@ Berikut adalah alur lengkap sirkulasi paket & barang di lingkungan Pondok Pesant
 - Sistem otomatis menghasilkan ID paket unik:
   - **Reguler:** `PKG-YYYYMMDD-XXXXXXXX` (8 karakter hex random)
   - **Jastip:** `JSTP-YYMM-NNN` (berurutan per bulan)
-- Data dicatat: No Resi, Kurir, Nama Santri, NIUP, Asrama, Wilayah, Daerah, Kamar, Kondisi Fisik
+- Data dicatat: No Resi, Kurir, Nama Santri, NIUP, Jenis Kelamin, Wilayah, Daerah
 
 #### Tahap 2a: Paket Reguler Masuk
 - Via menu **Paket Reguler Masuk** (`PaketMasukRegulerView`)
 - Dari kurir resmi (J&T, JNE, SiCepat, Pos Indonesia, dll)
 - Bisa scan barcode/QR resi menggunakan kamera HP
+- Bisa scan / input massal
 
 #### Tahap 2b: Paket Jastip Masuk
 - Via menu **Layanan Jastip Santri** (`PaketMasukJastipView`)
 - Untuk makanan/minuman titipan (GoFood, GrabFood, dll)
 - Dilengkapi **proteksi kedaluwarsa 24 jam** — ada label peringatan waktu
 - Mencatat kategori makanan dan jam kedatangan
+- Print label resi khusus jastip
 
 #### Tahap 2c: Paket Anonim (`paket_anonim`)
-- Paket tanpa identitas pengirim/penerima yang jelas
+- Paket tanpa identitas penerima yang jelas atau tidak terdaftar di data pesantren
 - Ditandai khusus untuk diidentifikasi lebih lanjut
 
 #### Tahap 3: Distribusi ke Asrama (`diterima_pengurus`)
@@ -153,14 +155,16 @@ Berikut adalah alur lengkap sirkulasi paket & barang di lingkungan Pondok Pesant
 - Bisa menggunakan **Camera Scanner** untuk scan barcode/resi
 - Status berubah dari `diterima_petugas` → `diterima_pengurus`
 - Opsi menentukan posisi rak/lemari penyimpanan
+- Bisa scan massal
 
 #### Tahap 4a: Serah Terima ke Santri (`telah_diantarkan`)
-- Santri mengambil paket di pos atau pengurus asrama
-- Via menu **Validasi & Penyerahan** atau langsung dari **Dashboard**
+- Santri mengambil paket di pos atau pengurus wilayah/keamanan
+- Via menu **Validasi & Penyerahan**
 - Proses verifikasi 2 langkah:
   1. **Kondisi Fisik:** Pilih Baik/Utuh atau Rusak/Cacat
   2. **PIN Opsional:** Verifikasi identitas santri (6 digit PIN)
 - Nama petugas penyerah dicatat
+- Nama penerima barang dicatat
 - Waktu serah terima tercatat otomatis (timestamp real-time)
 
 #### Tahap 4b: Penyitaan oleh Keamanan (`disita`)
@@ -172,14 +176,14 @@ Berikut adalah alur lengkap sirkulasi paket & barang di lingkungan Pondok Pesant
   - 🔪 **Senjata / Alat Tajam**
   - 🍕 **Makanan Luar Tanpa Izin**
   - 📋 **Pelanggaran Aturan Lainnya**
-- Dicatat: petugas penyita, deskripsi barang, bukti foto (hotlink/upload)
+- Dicatat: Nama Pelanggar, deskripsi barang, bukti foto (upload dari galeri / langsung foto dari kamera)
 - Status lanjutan: bisa **dilepaskan** ke wali santri atau **dikembalikan** ke kurir
 
 #### Tahap 5: Return to Sender / RTS (`kadaluarsa` → `dikembalikan`)
 - Via menu **Protokol RTS** (`RtsView`)
 - Paket yang melebihi batas waktu penyimpanan (kedaluwarsa)
 - Petugas memproses pengembalian ke kurir asal
-- Dicatat: kurir pengembalian, nomor resi baru RTS, bukti foto serah terima
+- Dicatat: kurir pengembalian, nomor resi baru RTS, bukti foto serah terima(opsional)
 - Status akhir: `dikembalikan`
 
 #### Tahap 6: Public Tracking (Pelacakan Publik)
@@ -197,8 +201,8 @@ Berikut adalah alur lengkap sirkulasi paket & barang di lingkungan Pondok Pesant
 | Status | Makna | Dapat Diubah Ke |
 |---|---|---|
 | `diterima_petugas` | Paket baru tercatat di Pos Paket | `diterima_pengurus`, `disita`, `kadaluarsa`, `dikembalikan`, `paket_anonim` |
-| `diterima_pengurus` | Paket sudah di asrama/pengurus | `telah_diantarkan`, `disita`, `kadaluarsa`, `dikembalikan` |
-| `telah_diantarkan` | ✅ Paket sudah diterima santri | Status akhir (sirkulasi selesai) |
+| `diterima_pengurus` | Paket sudah di wilayah/pengurus | `telah_diantarkan`, `disita`, `kadaluarsa`, `dikembalikan` |
+| `telah_diterima` | ✅ Paket sudah diterima santri | Status akhir (sirkulasi selesai) |
 | `disita` | Barang disita keamanan pondok | `dilepaskan`, `dikembalikan` |
 | `dilepaskan` | Barang sitaan dikembalikan ke wali | Status akhir |
 | `kadaluarsa` | Melebihi batas waktu penyimpanan | `dikembalikan` |
@@ -223,16 +227,16 @@ GoFood/GrabFood/Ojek datang
         │
         ▼
   Santri mengambil (serah terima)
-  Status: telah_diantarkan
+  Status: telah_diterima
 ```
 
 ### Alur Khusus Penyitaan
 
 ```
-Keamanan mencurigai paket
+Keamanan memeriksa paket
         │
         ▼
-  Buka barang di hadapan saksi
+  Buka barang di hadapan santri
         │
         ▼
   Klasifikasi: Elektronik/Media/Senjata/Makanan/dll
@@ -259,7 +263,7 @@ Keamanan mencurigai paket
 - **Validasi:** Class-validator, class-transformer (via NestJS pipes)
 
 ### Frontend (`PosketrenNJ-frontend/`)
-- **Framework:** Next.js v16 App Router, React 19
+- **Framework:** Next.js v16 App Router
 - **Styling:** TailwindCSS v4, Framer Motion v12
 - **Scanner:** html5-qrcode
 - **Icons:** lucide-react
@@ -319,79 +323,6 @@ Keamanan mencurigai paket
 │  └──────────────────────────────────────────────────────────┘    │
 └───────────────────────────────────────────────────────────────────┘
 ```
-
-## ⚡ Instalasi & Setup Lokal
-
-### Prerequisites
-- Node.js 18+ (disarankan v20+ / v22+)
-- MySQL 8+ atau MariaDB 10+
-- npm / yarn / pnpm
-
-### 1. Clone Repository
-```bash
-git clone <repo-url>
-cd PosketrenNJ
-```
-
-### 2. Setup Backend (NestJS)
-
-```bash
-cd PosketrenNJ-backend
-npm install
-```
-
-Buat file `.env`:
-```env
-# Database MySQL via Prisma
-DATABASE_URL="mysql://root:@localhost:3306/posketrennj"
-
-# JWT Secret — WAJIB DIISI DI PRODUCTION!
-JWT_SECRET=ganti-dengan-secret-minimal-32-karakter-yang-aman
-
-# Port
-PORT=8080
-```
-
-Generate Prisma client & migrasi database:
-```bash
-npx prisma generate
-npx prisma db push
-```
-
-Jalankan backend:
-```bash
-npm run start:dev
-```
-
-Backend akan berjalan di **http://localhost:8080/api**.
-
-### 3. Setup Frontend (Next.js)
-
-Buka terminal baru:
-```bash
-cd PosketrenNJ-frontend
-npm install
-```
-
-Buat file `.env`:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8080/api
-```
-
-Jalankan frontend:
-```bash
-npm run dev
-```
-
-Frontend akan berjalan di **http://localhost:3000**.
-
-### 4. Login Default
-| Username | Password | Role |
-|---|---|---|
-| `admin` | `administrator` | Administrator (full akses) |
-
-> ⚠️ **Segera ganti password admin setelah login pertama!**
-
 ## 🔐 Keamanan
 
 - ✅ JWT disimpan sebagai `httpOnly` cookie (aman dari XSS)
@@ -410,67 +341,6 @@ Frontend akan berjalan di **http://localhost:3000**.
 | `admin` | ✅ Full | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | `petugaspos` | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
 | `keamanan` | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-
-## 🗂️ Struktur Project
-
-```
-PosketrenNJ/
-├── PosketrenNJ-backend/           # NestJS v11 Backend API
-│   ├── prisma/
-│   │   └── schema.prisma          # Database schema (6 models)
-│   ├── src/
-│   │   ├── analytics/             # Dashboard KPI & statistik
-│   │   ├── api-config/            # Konfigurasi API sync eksternal
-│   │   ├── auth/                  # JWT auth, guards, decorators
-│   │   ├── cron/                  # Scheduler untuk sync otomatis
-│   │   ├── logs/                  # Activity logging dengan pagination
-│   │   ├── manifests/             # Tracking status paket
-│   │   ├── operators/             # Manajemen user operator
-│   │   ├── packages/              # CRUD paket + upload bukti foto
-│   │   ├── prisma/                # Prisma module & service
-│   │   └── students/              # CRUD data santri
-│   ├── test/                      # E2E testing
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── PosketrenNJ-frontend/          # Next.js v16 Frontend SPA
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── layout.tsx         # Root layout + metadata
-│   │   │   └── page.tsx           # Entry point (client component)
-│   │   ├── components/
-│   │   │   ├── ApiSyncView.tsx    # Integrasi API eksternal
-│   │   │   ├── CameraScanner.tsx  # QR/Barcode scanner
-│   │   │   ├── ConfiscatedView.tsx # Log penyitaan
-│   │   │   ├── DashboardView.tsx  # Dashboard KPI + serah terima
-│   │   │   ├── LoginView.tsx      # Halaman login
-│   │   │   ├── ManifestView.tsx   # Database manifest paket
-│   │   │   ├── PackageValidationView.tsx # Validasi serah terima
-│   │   │   ├── PaketMasukJastipView.tsx  # Input jastip
-│   │   │   ├── PaketMasukRegulerView.tsx # Input reguler
-│   │   │   ├── PublicTrackingView.tsx    # Tracking publik
-│   │   │   ├── RtsView.tsx        # Return to sender
-│   │   │   ├── Sidebar.tsx        # Navigasi sidebar
-│   │   │   ├── StudentDbView.tsx  # Master data santri
-│   │   │   ├── Toast.tsx          # Notifikasi toast
-│   │   │   └── UserManagementView.tsx # Manajemen operator
-│   │   ├── lib/
-│   │   │   └── schema.ts          # Re-export types (backward compat)
-│   │   ├── services/
-│   │   │   └── api.ts             # Axios instance + interceptor
-│   │   ├── types.ts               # Single source of truth untuk semua types
-│   │   ├── App.tsx                # Root component & state management
-│   │   └── index.css              # Global styles (Tailwind)
-│   ├── next.config.mjs            # API proxy rewrite
-│   └── package.json
-│
-├── README.md                      # Dokumentasi ini
-├── deployment.md                  # Panduan deploy production
-├── installation.md                # Panduan instalasi lokal
-├── database.sql                   # Backup struktur database
-├── metadata.json                  # Metadata aplikasi
-└── vercel.json                    # Konfigurasi Vercel (jika ada)
-```
 
 ## 📡 API Endpoints
 
@@ -503,57 +373,11 @@ Semua endpoint berada di bawah prefix `/api` pada port **8080**.
 | `POST` | `/api/manifests` | Any | Tambah data manifest |
 | `GET` | `/api/cron` | - | Endpoint trigger cron/sync (health check) |
 
-## 🚀 Deploy Production
-
-### Backend (NestJS)
-```bash
-cd PosketrenNJ-backend
-npm install
-npx prisma generate
-npx prisma db push
-npm run build
-npm run start:prod
-```
-
-### Frontend (Next.js)
-```bash
-cd PosketrenNJ-frontend
-npm install
-npm run build
-npm start
-```
-
-### PM2 (Process Manager)
-```bash
-npm i -g pm2
-pm2 start npm --name "posketren-backend" --prefix PosketrenNJ-backend -- run start:prod
-pm2 start npm --name "posketren-frontend" --prefix PosketrenNJ-frontend -- start
-pm2 save
-pm2 startup
-```
-
-### Reverse Proxy (Nginx)
-```nginx
-server {
-    listen 80;
-    server_name posketren.nuruljadid.ac.id;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-```
-
 ## 📊 Skema Database (ERD) & Relasi
 
 Aplikasi ini menggunakan database MySQL dengan ORM Prisma. Berikut adalah rancangan tabel dan relasi database keras (Foreign Key Constraints) yang diterapkan:
 
-```mermaid
+```
 erDiagram
     OPERATORS {
         string id PK
@@ -572,8 +396,7 @@ erDiagram
         string niup PK
         string nama_lengkap
         string jenis_kelamin
-        string kamar
-        string blok
+        string daerah
         string wilayah
         datetime created_at
         datetime updated_at
@@ -582,13 +405,11 @@ erDiagram
     PACKAGES {
         string id PK
         string trackingNumber INDEX
-        string courier
         string recipientId
         string recipientName
         enum asrama
         string wilayah
         string daerah
-        string room
         enum type
         string status
         string dateReceived
@@ -606,7 +427,6 @@ erDiagram
         string returnProofUrl
         string receiverName
         string receiverTime
-        string rackLocation
         string manifestId FK
         string circulationType
         boolean isExternalRecipient
@@ -621,7 +441,6 @@ erDiagram
         string id PK
         string packageId FK "UNIQUE"
         string status
-        string rackLocation
         string notes
         datetime created_at
         datetime updated_at
@@ -673,13 +492,11 @@ Digunakan untuk mendaftarkan paket reguler atau jastip baru.
 |---|---|---|---|
 | `id` | `string` | Opsional | ID paket kustom (jika tidak diset, sistem akan men-generate otomatis) |
 | `trackingNumber` | `string` | **Wajib** | Nomor resi ekspedisi dari kurir |
-| `courier` | `string` | **Wajib** | Nama jasa kurir ekspedisi (J&T, JNE, dll) |
 | `recipientId` | `string` | **Wajib** | NIUP santri penerima paket |
 | `recipientName` | `string` | **Wajib** | Nama lengkap santri penerima |
 | `asrama` | `string` | **Wajib** | Pilihan enum: `'Putra'` atau `'Putri'` |
 | `wilayah` | `string` | **Wajib** | Wilayah asrama |
 | `daerah` | `string` | **Wajib** | Daerah asrama |
-| `room` | `string` | Opsional | Kamar/blok santri |
 | `type` | `string` | Opsional | Pilihan enum: `'regular'` (default) atau `'jastip'` |
 | `status` | `string` | Opsional | Status awal paket (default: `'diterima_petugas'`) |
 | `dateReceived` | `string` | **Wajib** | Tanggal paket diterima pos |
@@ -706,7 +523,6 @@ Digunakan untuk meng-update status atau data penyerahan/penyitaan paket.
 | `returnTrackingNumber` | `string` | Opsional | Resi pengembalian RTS baru |
 | `receiverName` | `string` | Opsional | Nama penerima (saat diserahkan) |
 | `receiverTime` | `string` | Opsional | Waktu pengambilan paket |
-| `rackLocation` | `string` | Opsional | Posisi koordinat rak penyimpanan |
 
 ### 2. Santri DTOs
 
@@ -718,8 +534,7 @@ Digunakan oleh administrator untuk menambahkan santri baru secara manual.
 | `niup` | `string` | **Wajib** | Nomor Induk Unik Pesantren (Primary Key) |
 | `nama_lengkap` | `string` | **Wajib** | Nama lengkap santri |
 | `jenis_kelamin` | `string` | **Wajib** | Jenis kelamin santri |
-| `kamar` | `string` | **Wajib** | Nama kamar santri |
-| `blok` | `string` | **Wajib** | Blok asrama |
+| `daerah` | `string` | **Wajib** | Nama daerah santri |
 | `wilayah` | `string` | **Wajib** | Wilayah asrama |
 
 #### UpdateStudentDto (`PUT /api/students/:niup`)
@@ -729,8 +544,7 @@ Digunakan untuk memperbarui data biodata santri terdaftar.
 |---|---|---|---|
 | `nama_lengkap` | `string` | **Wajib** | Nama lengkap santri baru |
 | `jenis_kelamin` | `string` | **Wajib** | Jenis kelamin santri |
-| `kamar` | `string` | **Wajib** | Nama kamar santri |
-| `blok` | `string` | **Wajib** | Blok asrama |
+| `daerah` | `string` | **Wajib** | Nama daerah santri |
 | `wilayah` | `string` | **Wajib** | Wilayah asrama |
 
 ---
